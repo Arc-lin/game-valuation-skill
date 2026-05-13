@@ -18,8 +18,8 @@ files:
         description: "提交估值请求（POST /valuation/commit）"
       - name: execute
         description: "执行估值数据抓取（POST /valuation/execute）"
-      - name: qrcode
-        description: "保存扫码二维码到本地文件"
+      - name: scan
+        description: "扫码验证（自动保存二维码+打开+轮询+执行估值，一条命令完成）"
       - name: detail
         description: "获取估值原始数据（GET /valuation/detail）"
       - name: report
@@ -128,41 +128,40 @@ attrItems 的构造规则：
 
 ### Step 4：处理扫码（authType=1 或 2 时需要）
 
-如果 commit 返回的 authType 不为 0，需要引导用户扫码：
+如果 commit 返回的 authType 不为 0，调用 `scan` 命令（一条命令自动完成：保存二维码→打开→轮询扫码→执行估值）：
 
-1. 保存二维码到本地文件：
-   ```bash
-   <skill-dir>/scripts/game-valuation qrcode '<authCode>' <authType> <recordId>
-   ```
+```bash
+<skill-dir>/scripts/game-valuation scan '<authCode>' <authType> <recordId> <uuid> <uuidCreateTime>
+```
 
-2. **立即打开二维码图片**，让用户直接扫码：
-   ```bash
-   open <二维码文件路径>
-   ```
+其中 authCode、authType、recordId、uuid、uuidCreateTime 均来自 commit 返回的 JSON。
 
-3. **告知用户**扫码验证流程：
-   > 需要扫码验证身份才能获取估值结果。二维码已打开，请用手机扫描。扫码成功后告诉我「扫好了」即可继续。
+**scan 命令会自动：**
+1. 保存并打开二维码图片
+2. 后台轮询扫码结果（每 5 秒，最多 10 分钟）
+3. 扫码成功后自动调用 execute 执行估值
+4. 清理二维码临时文件
 
-4. 等待用户确认扫码成功后，**立即删除二维码文件**：
-   ```bash
-   rm -f <二维码文件路径>
-   ```
-   然后进入 Step 5
+**scan 命令可能的结果：**
+- 返回 execute 的 JSON 结果：扫码+估值成功
+- 报错 `二维码已过期`：超时未扫码，提示用户重新提交估值
 
-5. 如果用户长时间未响应或二维码过期（600 秒），提示用户可以重新提交估值
+**告知用户扫码验证流程：**
+> 二维码已打开，请用手机扫描。扫码后系统会自动完成估值。
 
-### Step 5：执行估值（扫码成功后或 authType=0 时调用）
+**注意**：scan 命令会阻塞等待扫码（最长 10 分钟），建议使用 Bash 工具的 `run_in_background: false` 运行，或让用户等待。
 
-触发后端数据抓取，**这一步必须调用，否则 detail 会返回空数据**：
+### Step 5：执行估值（仅 authType=0 时需要）
 
-- **authType=0**（王者荣耀）：commit 成功后直接调用
-- **authType=1/2**（和平精英/三角洲行动）：扫码成功后调用
+**authType=0**（王者荣耀）：commit 成功后直接调用 execute：
 
 ```bash
 <skill-dir>/scripts/game-valuation execute <recordId>
 ```
 
-调用后等待 3 秒让后端完成数据抓取，再进入 Step 6。
+**authType=1/2**（和平精英/三角洲行动）：scan 命令已自动执行了 execute，无需再调用。
+
+调用 execute 后等待 3 秒让后端完成数据抓取，再进入 Step 6。
 
 ### Step 6：展示估值结果
 
@@ -224,6 +223,7 @@ open "https://mall.yy.com/?pageId=20000"
 | 0 | 成功 | 正常流程 |
 | 401 | 未登录 | API 签名验证失败，请检查脚本是否为最新版本 |
 | 80002 | recordId 异常 | 提示估值记录不存在，建议重新提交 |
+| 130002 | 角色信息未找到 | 该区服没有对应游戏角色，请确认区服选择正确 |
 
 ## 注意事项
 
