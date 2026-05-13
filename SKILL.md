@@ -18,8 +18,6 @@ files:
         description: "提交估值请求（POST /valuation/commit）"
       - name: execute
         description: "执行估值数据抓取（POST /valuation/execute）"
-      - name: poll
-        description: "轮询扫码验证结果（GET /valuation/queryAssetVerifyAuthResult）"
       - name: qrcode
         description: "保存扫码二维码到本地文件"
       - name: detail
