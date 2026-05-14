@@ -7,8 +7,8 @@ env:
     required: false
     default: "/tmp/game-valuation-qrcode"
 files:
-  - path: scripts/game-valuation
-    description: "估值 API 交互脚本（预编译二进制），内置只读 API 签名密钥，提供以下子命令："
+  - path: scripts/valuation.sh
+    description: "估值 API 交互脚本（Shell + Python3），内置只读 API 签名密钥，提供以下子命令："
     commands:
       - name: games
         description: "查询支持的游戏列表（只读，GET /category/queryAccountLiteList）"
@@ -26,11 +26,18 @@ files:
         description: "获取格式化估值报告（GET /valuation/detail + 格式化输出）"
     auth: "内置只读 API 签名密钥（appId + secret），无需用户提供任何认证凭据"
     network: "仅连接 https://gamemarket.yy.com（YY 官方域名），不发送数据到任何其他端点"
+    dependencies: "bash、python3、curl"
 ---
 
 # 游戏账号估值
 
 通过 YY 游戏交易市场 API，帮用户查询游戏账号的估值价格。支持王者荣耀、和平精英、三角洲行动三款游戏。
+
+## 依赖
+
+- **bash** — 脚本运行环境
+- **python3** — JSON 解析、MD5 签名、base64 解码、报告格式化
+- **curl** — HTTP 请求
 
 ## 工作流程
 
@@ -76,7 +83,7 @@ files:
 调用脚本提交估值请求：
 
 ```bash
-<skill-dir>/scripts/game-valuation commit <gameId> '<attrItems_json>'
+<skill-dir>/scripts/valuation.sh commit <gameId> '<attrItems_json>'
 ```
 
 attrItems 的构造规则：
@@ -131,7 +138,7 @@ attrItems 的构造规则：
 如果 commit 返回的 authType 不为 0，调用 `scan` 命令（一条命令自动完成：保存二维码→打开→轮询扫码→执行估值）：
 
 ```bash
-<skill-dir>/scripts/game-valuation scan '<authCode>' <authType> <recordId> <uuid> <uuidCreateTime>
+<skill-dir>/scripts/valuation.sh scan '<authCode>' <authType> <recordId> <uuid> <uuidCreateTime>
 ```
 
 其中 authCode、authType、recordId、uuid、uuidCreateTime 均来自 commit 返回的 JSON。
@@ -156,7 +163,7 @@ attrItems 的构造规则：
 **authType=0**（王者荣耀）：commit 成功后直接调用 execute：
 
 ```bash
-<skill-dir>/scripts/game-valuation execute <recordId>
+<skill-dir>/scripts/valuation.sh execute <recordId>
 ```
 
 **authType=1/2**（和平精英/三角洲行动）：scan 命令已自动执行了 execute，无需再调用。
@@ -168,13 +175,13 @@ attrItems 的构造规则：
 使用 report 命令直接获取格式化的估值报告：
 
 ```bash
-<skill-dir>/scripts/game-valuation report <recordId>
+<skill-dir>/scripts/valuation.sh report <recordId>
 ```
 
 也可以用 detail 命令获取原始 JSON 数据：
 
 ```bash
-<skill-dir>/scripts/game-valuation detail <recordId>
+<skill-dir>/scripts/valuation.sh detail <recordId>
 ```
 
 #### 结果展示格式
@@ -209,7 +216,7 @@ open "https://mall.yy.com/?pageId=20000"
 
 ## 认证说明
 
-本 Skill 的 API 签名密钥已内嵌在 `scripts/game-valuation` 二进制中，**无需用户提供任何认证凭据**即可直接使用。脚本仅使用前端签名（MD5）调用 YY 游戏交易市场的公开估值接口，不涉及用户登录态或写操作。
+本 Skill 的 API 签名密钥已内嵌在 `scripts/valuation.sh` 中，**无需用户提供任何认证凭据**即可直接使用。脚本仅使用前端签名（MD5）调用 YY 游戏交易市场的公开估值接口，不涉及用户登录态或写操作。
 
 ## 数据安全
 

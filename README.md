@@ -1,6 +1,6 @@
 # game-valuation
 
-> YY 游戏账号估值 Skill for Claude Code
+> YY 游戏账号估值 Skill for Claude Code（源码版）
 
 在 Claude Code 对话中直接查询游戏账号估值价格，支持王者荣耀、和平精英、三角洲行动三款游戏。
 
@@ -22,6 +22,12 @@
 | 王者荣耀 | 否 | 区服、营地ID、实名情况、防沉迷 |
 | 和平精英 | 是（base64 二维码） | 区服、实名情况、防沉迷 |
 | 三角洲行动 | 是（微信 URL 二维码） | 登录方式、实名情况 |
+
+## 依赖
+
+- **bash** — 脚本运行环境
+- **python3** — JSON 解析、MD5 签名、base64 解码、报告格式化
+- **curl** — HTTP 请求
 
 ---
 
